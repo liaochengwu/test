@@ -1,3 +1,3 @@
 # test
 Restore some data
-images, .etc
+images, video.etc
