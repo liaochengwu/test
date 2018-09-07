@@ -355,7 +355,7 @@ map.on('mouseleave', 'poiCountNearBy', function() {
 });
 /////////////////////////////////////////////////增加layer : metro
 map.on('load',function(){
-map.loadImage('https://raw.githubusercontent.com/cqu-bdsc/image/master/metro.png', function(error, image) {
+map.loadImage('https://liaochengwu.github.io/test/beijing_poi_checkins_bus_metro/metro-sign.png', function(error, image) {
 	if (error) throw error;
 	map.addImage('metro',image)
 	map.addSource("metro_data",{
