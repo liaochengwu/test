@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html style="height:100%">
+<head>
+    <meta charset='utf-8' />
+    <title>RoD service</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+	<script src="https://cdn.bootcss.com/echarts/4.1.0.rc2/echarts.min.js"></script>
+	<link href='https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css' rel='stylesheet' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.47.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.47.0/mapbox-gl.css' rel='stylesheet' />
+	<script src='all_checkin_locations.js'></script>
+	<script src='poiCountNearBy_poiName.js'></script>
+	<script src='metroLineInfo.js'></script>
+	<script src='busLineInfo.js'></script>
+	<script src="routes_bus_metro.js"></script>
+	<script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.min.js'></script>
+	<link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.css' type='text/css' />
+    <style>
+        body{ margin:0; padding:0;height:100%;}
+		#dht{padding:0.5%;height:3%;boder:solid 0.5% #fcc;background-color:#009999;text-align:center;display:-webkit-box;-webkit-box-pack:center;-webkit-box-align:center;}
+		#map{position:relative;float:right;width:75%;height:95%;border:solid 5px #D3D3D3;text-align:left;box-sizing: border-box;}
+        #option{position:relative;float:left;width:25%;height:50%;border:solid 5px #D3D3D3;box-sizing: border-box;}
+		#show_charts{position:relative;float:left;width:25%;height:45%;border:solid 5px #D3D3D3;box-sizing: border-box;}
+		#info_latlon{position:absolute;z-index:999; top:5%; left:2%; width:225px; height: 5%; background:url(bg.jpg); font-family: monospace; border-radius: 3px;}
+    </style>
+</head>			
+			
+<body>
+<style>
+    .mapboxgl-popup {
+        max-width: 400px;
+        font: 14px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+    }
+</style>
+<div id='dht' >
+	<label class="title" style='font-size:18px;color:white;font-weight:bold;'>Dynamic Price in RoD service & Multi-source Urban Data</label>
+</div>
+<div id='map' >	
+		<div id="info_latlon" >
+			<span style="position:absolute; top:23%; left:5%; font-size: 15px;">经纬度:</span>
+			<span id="latlon" style="position: absolute; top:23%; left:33%; font-size: 15px;"></span>
+		</div>		
+</div>
+
+<div id='option'>
+	<form class="form-horizontal">
+			<div class="control-group" style="padding:3%;font-size:16px;text-align:center;" >
+			<div class="search" >
+			<label >Location : </label>
+				<select name="leipiNewField" type="text" value=""  class="leipiplugins" leipiplugins="select" id="address_search" style="font-size:16px">
+				  <option>...</option>
+				  <option>天安门广场</option>
+				  <option>北京大学</option>
+				  <option>清华大学</option>
+				  <option>重庆大学</option>
+				</select>
+				<input type="button" id="button_search" value="Find" style="font-size:15px">				
+			</div>
+			</div>
+			<div style="position:relative;width:100%;padding:2% 0 2% 0;border-style:dotted none dotted none;border-width:3px;border-color:#D3D3D3;box-sizing: border-box;">
+			<div><label><b>&nbsp;&nbsp;Multi-source Data:</b></label></div>
+			<div id='menu' style="text-align:center;font-size:16px;margin:15px 0 0 0">
+				<input id='POI' type='checkbox' name='rtoggle' value='POI'  onclick="menu()">
+				<label for='POI'>POI</label>
+				<input id='check-ins' type='checkbox' name='rtoggle' value='check-ins' onclick="menu()">
+				<label for='check-ins'>check-ins</label>
+				<input id='bus' type='checkbox' name='rtoggle' value='bus' onclick="menu()">
+				<label for='bus'>bus</label>
+				<input id='metro' type='checkbox' name='rtoggle' value='metro' onclick="menu()">
+				<label for='metro'>metro</label>
+			</div>
+			</div>
+		
+	</form>	
+</div>
+  
+
+<div id='show_charts'>
+<div class='show_checkins' style="display:none;">
+	<label ><b>Check-ins:</b></label >
+		<form class="form-horizontal">
+			<div id='checkins_control' style="position:absolute;left:15%;top:8%;height:35%;width:70%;font-size:16px;border:dotted 3px #D3D3D3;box-sizing: border-box;">
+				
+				<div class='control' style='position:absolute;left:10%;' >
+					<div style="margin:13px 0;">
+						<label >Heat Map:&nbsp;&nbsp;</label >
+						<button type="button" id='button_heatmap_checkins_show'>show</button>
+						<label >&nbsp;&nbsp;&nbsp;</label >
+						<button type="button" id='button_heatmap_checkins_hide'>hide</button>
+					</div>
+					<div class='control_radius' style="margin:15px 0;">
+						<label for='checkins_radius'>Radius:&nbsp;&nbsp;&nbsp;&nbsp;</label><u><span id='span_checkins_radius'>30</span></u>&nbsp;&nbsp;&nbsp;		
+						<input id="checkins_radius"  type="range" value="30"  min="0" max="70" step="1"  />&nbsp;
+						
+					</div>
+					<div class='control_opacity' style="margin:10px 0;">
+						<label for='checkins_opacity'>Opacity:&nbsp;&nbsp;</label><u><span id='span_checkins_opacity'>70</span>%</u>			
+						<input id="checkins_opacity"  type="range" value="70"  min="0" max="100" step="1"  />&nbsp;
+						
+					</div>
+				</div>
+			</div>
+
+			<div id='checkins_chart' style="position:absolute;top:50%;">
+			</div>
+		</form>	
+</div>
+<div class='show_transportation' style="position:absolute;top:50%;height:50%;width:100%;display:none;">
+	<label ><b>Bus & Metro:</b></label >
+		<form class="form-horizontal">
+			<div id='trans_control' style="position:absolute;left:15%;top:16%;height:70%;width:70%;font-size:16px;border:dotted 3px #D3D3D3;box-sizing: border-box;">
+				
+				<div class='control' style='position:absolute;left:10%;' >
+					<div style="margin:13px 0;">
+						<label >Heat Map:&nbsp;&nbsp;</label >
+						<button type="button" id='button_heatmap_trans_show'>show</button>
+						<label >&nbsp;&nbsp;&nbsp;</label >
+						<button type="button" id='button_heatmap_trans_hide'>hide</button>
+					</div>
+					<div class='control_radius' style="margin:15px 0;">
+						<label for='trans_radius'>Radius:&nbsp;&nbsp;&nbsp;&nbsp;</label><u><span id='span_trans_radius'>25</span></u>&nbsp;&nbsp;&nbsp;		
+						<input id="trans_radius"  type="range" value="25"  min="0" max="70" step="1"  />&nbsp;
+						
+					</div>
+					<div class='control_opacity' style="margin:10px 0;">
+						<label for='trans_opacity'>Opacity:&nbsp;&nbsp;</label><u><span id='span_trans_opacity'>70</span>%</u>			
+						<input id="trans_opacity"  type="range" value="70"  min="0" max="100" step="1"  />&nbsp;
+						
+					</div>
+				</div>
+			</div>
+		</form>	
+</div>
+
+</div>
+</body>
+<script>
+
+//展示地图			
+mapboxgl.accessToken = 'pk.eyJ1IjoibGN3IiwiYSI6ImNqa2h4c2kwZDB3YnYzcXBqM2V6ZWc4ODUifQ.pFm59Mjq4yC9fBAHE3XLpQ';
+var map = new mapboxgl.Map({
+	container: 'map', // container id
+	
+	style: 'mapbox://styles/mapbox/streets-v9',
+	center: [116.39, 39.903], // starting position
+	zoom: 10.5 // starting zoom
+	});
+
+map.addControl(new MapboxGeocoder({
+    accessToken: mapboxgl.accessToken
+}));
+		// Add zoom and rotation controls to the map.
+map.addControl(new mapboxgl.NavigationControl());
+
+
+//Infomations of mouse position
+map.on('mousemove', function (e){
+	lat = e.lngLat.lat;
+	lng = e.lngLat.lng;
+	$('#latlon').text(lat.toFixed(4)+' , '+lng.toFixed(4));
+});	
+//搜索地点
+var button_search = document.getElementById('button_search');
+	button_search.onclick = function(){
+		var address_search = document.getElementById('address_search').value;
+		if (address_search == "天安门广场") {
+			map_center = [116.39, 39.903];					
+		}else if (address_search == "北京大学") {
+			map_center = [116.31, 39.992];
+		}else if (address_search == "清华大学") {
+			map_center = [116.32, 40.002];
+		}else if (address_search == "重庆大学") {
+			map_center = [106.46, 29.568];
+		}else {
+			alert('请选择地点');
+		}
+		map.flyTo({center:map_center, zoom:15});
+		document.getElementById("menu").innerHTML=document.getElementById("menu").innerHTML;
+	};
+
+function menu(){
+	var rtoggles = document.getElementsByName("rtoggle");
+
+	if(!$('#poi').is(':checked')) {
+		map.setLayoutProperty('poiCountNearBy', 'visibility', 'none');
+	}
+	if (!$('#check-ins').is(':checked')){
+		$('.show_checkins').hide();
+		map.setLayoutProperty('checkins-heat', 'visibility', 'none');
+		//alert(rtoggles[0].value);
+	}
+	if (!$('#bus').is(':checked')){
+		$('.show_transportation').hide();
+		$('#checkins_chart').show();
+		map.setLayoutProperty('busLineInfo', 'visibility', 'none');
+		map.setLayoutProperty('trans-heat', 'visibility', 'none');
+	}
+	if (!$('#metro').is(':checked')){
+		map.setLayoutProperty('metroLineInfo', 'visibility', 'none');
+	}
+
+	
+	for(var i = 0; i < rtoggles.length; i++) {
+		if(rtoggles[i].checked) {		
+			if(rtoggles[i].value == "POI") {
+				map.setLayoutProperty('poiCountNearBy', 'visibility', 'visible');
+			}
+			else if(rtoggles[i].value == "check-ins") {
+				$('.show_checkins').show();
+				Chart_checkins.setOption(option_checkins);
+				//map.setLayoutProperty('checkins', 'visibility', 'visible');
+			}
+			else if(rtoggles[i].value == "bus") {
+				$('.show_transportation').show();
+				$('#checkins_chart').hide();
+				map.setLayoutProperty('busLineInfo', 'visibility', 'visible');
+			}
+			else if(rtoggles[i].value == "metro") {
+				map.setLayoutProperty('metroLineInfo', 'visibility', 'visible');
+			}
+		}
+	}
+}
+var popup = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false
+    });	
+/////////////////////////////////////////////////增加layer : check-ins
+map.on('load',function(){
+	map.addSource("checkins_data",{
+		'type':'geojson',
+		'data': all_checkin_locations
+	});
+	
+	map.addLayer({
+		'id': 'checkins',
+		'type': 'circle',
+		'source': 'checkins_data',
+		
+		"layout":{
+			"visibility": "none"
+		},
+		"paint": {
+			// make circles larger as the user zooms from z12 to z22
+			'circle-radius': [
+					"interpolate",
+					["linear"],
+					["zoom"],
+					10, 2,
+					18, 10
+				],
+			"circle-color": [
+				'match',
+				['get', 'check_type'],
+				'0', '#0000ff',
+				'1', '#ff0000',
+				'2', '#ffa500',
+				'3', '#32cd32',
+				'4', '#8b658b',
+				'5', '#ffff00',
+				'6', '#fa8072',
+				'7', '#00bfff',
+				/* other */ '#ccc'
+			]
+		}
+	});
+});
+	//显示popup
+map.on('click', 'checkins', function (e) {
+	var coordinates = e.features[0].geometry.coordinates.slice();
+	var description = e.features[0].properties.check_type;
+
+	// Ensure that if the map is zoomed out such that multiple
+	// copies of the feature are visible, the popup appears
+	// over the copy being pointed to.
+	while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+		coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+	}
+
+	popup.setLngLat(coordinates)
+		.setHTML(description)
+		.addTo(map);
+	});
+
+map.on('mouseleave', 'checkins', function() {
+	map.getCanvas().style.cursor = '';
+	popup.remove();
+});
+
+
+/////////////////////////////////////////////////增加layer : poi
+map.on('load',function(){
+	map.addSource("poi_data",{
+		'type':'geojson',
+		'data': poiCountNearBy
+	});
+	
+	map.addLayer({
+		'id': 'poiCountNearBy',
+		'type': 'circle',
+		'source': 'poi_data',
+		
+		"layout":{
+			"visibility": "none"
+		},
+		"paint": {
+			// make circles larger as the user zooms from z12 to z22
+			'circle-radius': [
+				"interpolate",
+				["linear"],
+				["zoom"],
+				10, 1.5,
+				18, 12
+			],
+			"circle-color": [
+                "interpolate",
+                ["linear"],
+                ["get", "poi_sum"],
+                0, "rgba(0.6902,0.88627,1,0)",
+                200, "rgba(0.52941,0.80784,1,0)",
+                300, "#00BFFF",
+                400, "#1E90FF",
+                500, "#3A5FCD",
+                600, "#0000FF"
+            ],
+			"circle-opacity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                9, 0.7,
+                18, 0
+            ],
+		}
+	});
+});
+	//显示popup
+map.on('click', 'poiCountNearBy', function (e) {
+	var coordinates = e.features[0].geometry.coordinates.slice();
+	var description = "<strong>POI总数:&nbsp;" + e.features[0].properties.poi_sum + "</strong><p>各类POI数量：" + e.features[0].properties.poi_num + "</p>";
+
+
+	while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+		coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+	}
+		popup.setLngLat(coordinates)
+		.setHTML(description)
+		.addTo(map);
+	});
+
+map.on('mouseleave', 'poiCountNearBy', function() {
+	map.getCanvas().style.cursor = '';
+	popup.remove();
+});
+/////////////////////////////////////////////////增加layer : metro
+map.on('load',function(){
+map.loadImage('https://raw.githubusercontent.com/cqu-bdsc/image/master/metro.png', function(error, image) {
+	if (error) throw error;
+	map.addImage('metro',image)
+	map.addSource("metro_data",{
+		'type':'geojson',
+		'data': metroLineInfo
+	});
+	
+	map.addLayer({
+		'id': 'metroLineInfo',
+		'type': 'symbol',
+		'source': 'metro_data',
+		
+		"layout":{
+			"visibility": "none",
+			"icon-image": "metro",
+			"icon-size": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                10, 0.1,
+                15, 0.5
+            ],
+			"icon-allow-overlap": true
+		}
+	});
+});
+});
+
+		//显示popup
+map.on('mouseenter', 'metroLineInfo', function(e) {
+		// Change the cursor style as a UI indicator.
+		map.getCanvas().style.cursor = 'pointer';
+
+		var coordinates = e.features[0].geometry.coordinates.slice();
+		var description = "<strong>" + e.features[0].properties.stationName + "</strong><p>线路：" + e.features[0].properties.routeName + "</p>";
+
+		while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+			coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+		}
+		popup.setLngLat(coordinates)
+		.setHTML(description)
+		.addTo(map);
+	});
+
+map.on('mouseleave', 'metroLineInfo', function() {
+	map.getCanvas().style.cursor = '';
+	popup.remove();
+});
+
+/////////////////////////////////////////////////增加layer : bus
+map.on('load',function(){
+	
+	map.addSource("bus_data",{
+		'type':'geojson',
+		'data': busLineInfo
+	});
+	
+	map.addLayer({
+		'id': 'busLineInfo',
+		'type': 'symbol',
+		'source': 'bus_data',
+		
+		"layout":{
+			"visibility": "none",
+			"icon-image": "bus-15",
+			"icon-size": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                10, 0.1,
+                15, 0.8
+            ],
+			"icon-allow-overlap": true
+		}
+	});
+});
+
+		//显示popup
+map.on('mouseenter', 'busLineInfo', function(e) {
+		// Change the cursor style as a UI indicator.
+		map.getCanvas().style.cursor = 'pointer';
+
+		var coordinates = e.features[0].geometry.coordinates.slice();
+		var description = "<strong>" + e.features[0].properties.stationName + "</strong><p>线路：" + e.features[0].properties.routeNum + "</p>";
+
+		while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+			coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+		}
+		popup.setLngLat(coordinates)
+		.setHTML(description)
+		.addTo(map);
+	});
+
+map.on('mouseleave', 'busLineInfo', function() {
+	map.getCanvas().style.cursor = '';
+	popup.remove();
+});
+
+
+//////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////heatmap_checkins
+//range拖动改变heat map属性大小;定义值
+var span_checkins_radius = document.getElementById("span_checkins_radius");
+var span_checkins_opacity = document.getElementById("span_checkins_opacity");
+var checkins_radius = document.getElementById("checkins_radius");
+var checkins_opacity = document.getElementById("checkins_opacity");
+
+map.on('load',function(){
+
+     map.addLayer({
+        "id": "checkins-heat",
+        "type": "heatmap",
+        "source": "checkins_data",
+        "maxzoom": 18,
+		"layout":{
+			"visibility": "none"
+		},
+        "paint": {
+            // Increase the heatmap weight based on frequency and property magnitude
+            "heatmap-weight": [
+                "interpolate",
+                ["linear"],
+                ["get", "check_num"],
+                0, 0,
+                1000, 1
+            ],
+            // Increase the heatmap color weight weight by zoom level
+            // heatmap-intensity is a multiplier on top of heatmap-weight
+            "heatmap-intensity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                0, 1,
+                18, 3
+            ],
+            // Color ramp for heatmap.  Domain is 0 (low) to 1 (high).
+            // Begin color ramp at 0-stop with a 0-transparancy color
+            // to create a blur-like effect.
+            "heatmap-color": [
+                "interpolate",
+                ["linear"],
+                ["heatmap-density"],
+                0, "rgba(33,102,172,0)",
+                0.2, "rgb(103,169,207)",
+                0.4, "rgb(209,229,240)",
+                0.6, "rgb(253,219,199)",
+                0.8, "rgb(239,138,98)",
+                1, "rgb(178,24,43)"
+            ],
+            // Adjust the heatmap radius by zoom level
+            "heatmap-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                0, 0,
+                18, 70
+            ],
+            // Transition from heatmap to circle layer by zoom level
+            "heatmap-opacity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                9, 1,
+                18, 0
+            ],
+        }
+    }, 'waterway-label');
+    
+	map.setPaintProperty('checkins-heat', 'heatmap-radius', parseInt(checkins_radius.value));
+	checkins_radius.addEventListener('input', function(e) {
+		span_checkins_radius.textContent = e.target.value;
+		map.setPaintProperty('checkins-heat', 'heatmap-radius', parseInt(e.target.value));
+	});
+	map.setPaintProperty('checkins-heat', 'heatmap-opacity', parseInt(checkins_opacity.value)/100);
+	checkins_opacity.addEventListener('input', function(e) {
+		span_checkins_opacity.textContent = e.target.value;
+		map.setPaintProperty('checkins-heat', 'heatmap-opacity', parseInt(e.target.value)/100);
+			
+	});
+});
+
+///////////////////////////////////////////////////////////////heatmap_transportation
+//range拖动改变heat map属性大小;定义值
+var span_trans_radius = document.getElementById("span_trans_radius");
+var span_trans_opacity = document.getElementById("span_trans_opacity");
+var trans_radius = document.getElementById("trans_radius");
+var trans_opacity = document.getElementById("trans_opacity");
+
+map.on('load',function(){
+	map.addSource("trans_data",{
+		'type':'geojson',
+		'data': routes_bus_metro
+	});
+    map.addLayer({
+        "id": "trans-heat",
+        "type": "heatmap",
+        "source": "trans_data",
+        "maxzoom": 18,
+		"layout":{
+			"visibility": "none"
+		},
+        "paint": {
+            // Increase the heatmap weight based on frequency and property magnitude
+            "heatmap-weight": [
+                "interpolate",
+                ["linear"],
+                ["get", "routeNum"],
+                0, 0,
+                50, 1
+            ],
+            // Increase the heatmap color weight weight by zoom level
+            // heatmap-intensity is a multiplier on top of heatmap-weight
+            "heatmap-intensity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                0, 1,
+                18, 3
+            ],
+            // Color ramp for heatmap.  Domain is 0 (low) to 1 (high).
+            // Begin color ramp at 0-stop with a 0-transparancy color
+            // to create a blur-like effect.
+            "heatmap-color": [
+                "interpolate",
+                ["linear"],
+                ["heatmap-density"],
+                0, "rgba(33,102,172,0)",
+                0.2, "rgb(103,169,207)",
+                0.4, "rgb(209,229,240)",
+                0.6, "rgb(253,219,199)",
+                0.8, "rgb(239,138,98)",
+                1, "rgb(255,0,0)"
+            ],
+            // Adjust the heatmap radius by zoom level
+            "heatmap-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                0, 0,
+                18, 70
+            ],
+            // Transition from heatmap to circle layer by zoom level
+            "heatmap-opacity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                9, 1,
+                18, 0
+            ],
+        }
+    }, 'waterway-label');
+    
+	map.setPaintProperty('trans-heat', 'heatmap-radius', parseInt(trans_radius.value));
+	trans_radius.addEventListener('input', function(e) {
+		span_trans_radius.textContent = e.target.value;
+		map.setPaintProperty('trans-heat', 'heatmap-radius', parseInt(e.target.value));
+	});
+	map.setPaintProperty('trans-heat', 'heatmap-opacity', parseInt(trans_opacity.value)/100);
+	trans_opacity.addEventListener('input', function(e) {
+		span_trans_opacity.textContent = e.target.value;
+		map.setPaintProperty('trans-heat', 'heatmap-opacity', parseInt(e.target.value)/100);
+			
+	});
+});
+//////////////////////////////////////////////////////////////////////
+
+//heatmap响应按钮
+$(document).ready(function(){
+			//heatmap
+            $("#button_heatmap_checkins_show").click(function(){
+				map.setLayoutProperty('checkins-heat', 'visibility', 'visible');
+            });
+			$("#button_heatmap_checkins_hide").click(function(){
+				map.setLayoutProperty('checkins-heat', 'visibility', 'none');
+            });
+			$("#button_heatmap_trans_show").click(function(){
+				map.setLayoutProperty('trans-heat', 'visibility', 'visible');
+            });
+			$("#button_heatmap_trans_hide").click(function(){
+				map.setLayoutProperty('trans-heat', 'visibility', 'none');
+            });
+});
+
+
+
+//画图表
+//var Chart_poi = echarts.init(document.getElementById('checkins_chart'));
+$("#checkins_chart").css('width',$("#show_charts").width()); 
+$("#checkins_chart").css('height',$("#show_charts").height()*0.5); 
+var Chart_checkins = echarts.init(document.getElementById('checkins_chart'));
+var option_checkins = {
+	title : {
+		text: 'check-ins 类型比例',       
+		x:'center',
+		textStyle:{
+        color:'#9C9C9C',
+　　　　 fontSize:16
+    }
+	},
+	tooltip : {
+				trigger: 'item',
+				formatter: "{a} <br/>{b} : {c} ({d}%)"
+			},
+	series : [
+		{
+			name: 'checkins',
+			type: 'pie',
+			stillShowZeroSum: false,
+			radius : '55%',
+			center: ['50%', '55%'],
+			//只传入不为0的type
+			data:[
+				{value:4007, name:'0', itemStyle:{color:'#0000ff'}},
+				{value:796, name:'1',itemStyle:{color:'#ff0000'}},
+				{value:1727, name:'2',itemStyle:{color:'#ffa500'}},
+				{value:4612, name:'3',itemStyle:{color:'#32cd32'}},
+				{value:2199, name:'4',itemStyle:{color:'#8b658b'}},
+				{value:4470, name:'5',itemStyle:{color:'#ffff00'}},
+				{value:16668, name:'6',itemStyle:{color:'#fa8072'}},
+				{value:2557, name:'7',itemStyle:{color:'#00bfff'}}
+			],
+			itemStyle: {
+				emphasis: {
+					shadowBlur: 10,
+					shadowOffsetX: 0,
+					shadowColor: 'rgba(0, 0, 0, 0.5)'
+				}
+			}
+		}
+	]
+};
+
+</script>
+
+</html>
