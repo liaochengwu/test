@@ -46,32 +46,20 @@
 
 <div id='option'>
 	<form class="form-horizontal">
-			<div class="control-group" style="padding:3%;font-size:16px;text-align:center;" >
-			<div class="search" >
-			<label >Location : </label>
-				<select name="leipiNewField" type="text" value=""  class="leipiplugins" leipiplugins="select" id="address_search" style="font-size:16px">
-				  <option>...</option>
-				  <option>天安门广场</option>
-				  <option>北京大学</option>
-				  <option>清华大学</option>
-				  <option>重庆大学</option>
-				</select>
-				<input type="button" id="button_search" value="Find" style="font-size:15px">				
-			</div>
-			</div>
-			<div style="position:relative;width:100%;padding:2% 0 2% 0;border-style:dotted none dotted none;border-width:3px;border-color:#D3D3D3;box-sizing: border-box;">
-			<div><label><b>&nbsp;&nbsp;Multi-source Data:</b></label></div>
-			<div id='menu' style="text-align:center;font-size:16px;margin:15px 0 0 0">
-				<input id='POI' type='checkbox' name='rtoggle' value='POI'  onclick="menu()">
-				<label for='POI'>POI</label>
-				<input id='check-ins' type='checkbox' name='rtoggle' value='check-ins' onclick="menu()">
-				<label for='check-ins'>check-ins</label>
-				<input id='bus' type='checkbox' name='rtoggle' value='bus' onclick="menu()">
-				<label for='bus'>bus</label>
-				<input id='metro' type='checkbox' name='rtoggle' value='metro' onclick="menu()">
-				<label for='metro'>metro</label>
-			</div>
-			</div>
+			
+		<div style="position:relative;width:100%;padding:2% 0 2% 0;border-style:dotted none dotted none;border-width:3px;border-color:#D3D3D3;box-sizing: border-box;">
+		<div><label><b>&nbsp;&nbsp;Multi-source Data:</b></label></div>
+		<div id='menu' style="text-align:center;font-size:16px;margin:15px 0 0 0">
+			<input id='POI' type='checkbox' name='rtoggle' value='POI'  onclick="menu()">
+			<label for='POI'>POI</label>
+			<input id='check-ins' type='checkbox' name='rtoggle' value='check-ins' onclick="menu()">
+			<label for='check-ins'>check-ins</label>
+			<input id='bus' type='checkbox' name='rtoggle' value='bus' onclick="menu()">
+			<label for='bus'>bus</label>
+			<input id='metro' type='checkbox' name='rtoggle' value='metro' onclick="menu()">
+			<label for='metro'>metro</label>
+		</div>
+		</div>
 		
 	</form>	
 </div>
@@ -161,24 +149,7 @@ map.on('mousemove', function (e){
 	lng = e.lngLat.lng;
 	$('#latlon').text(lat.toFixed(4)+' , '+lng.toFixed(4));
 });	
-//搜索地点
-var button_search = document.getElementById('button_search');
-	button_search.onclick = function(){
-		var address_search = document.getElementById('address_search').value;
-		if (address_search == "天安门广场") {
-			map_center = [116.39, 39.903];					
-		}else if (address_search == "北京大学") {
-			map_center = [116.31, 39.992];
-		}else if (address_search == "清华大学") {
-			map_center = [116.32, 40.002];
-		}else if (address_search == "重庆大学") {
-			map_center = [106.46, 29.568];
-		}else {
-			alert('请选择地点');
-		}
-		map.flyTo({center:map_center, zoom:15});
-		document.getElementById("menu").innerHTML=document.getElementById("menu").innerHTML;
-	};
+
 
 function menu(){
 	var rtoggles = document.getElementsByName("rtoggle");
